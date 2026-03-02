@@ -1,1 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Dò Xổ Số PRO</title>
+<style>
+body {
+    font-family: Arial;
+    background: #f2f2f2;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+}
+.container {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+h2 {
+    text-align: center;
+    color: #d62828;
+}
+input, select, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+button {
+    background: #d62828;
+    color: white;
+    font-weight: bold;
+    border: none;
+}
+.result {
+    margin-top: 15px;
+    background: #f8f8f8;
+    padding: 10px;
+    border-radius: 8px;
+}
+.win { color: green; font-weight: bold; }
+.lose { color: red; font-weight: bold; }
+</style>
+</head>
+<body>
 
+<div class="container">
+<h2>App Dò Xổ Số 🎯</h2>
+
+<select id="mien">
+<option value="mb">Miền Bắc</option>
+<option value="mt">Miền Trung</option>
+<option value="mn">Miền Nam</option>
+</select>
+
+<input type="text" id="numbers" placeholder="Nhập số (vd: 27,72,45)">
+<input type="number" id="tien" placeholder="Nhập tiền mỗi số">
+
+<button onclick="doSo()">Dò & Tính Tiền</button>
+
+<div class="result" id="output"></div>
+</div>
+
+<script>
+async function doSo() {
+    const mien = document.getElementById("mien").value;
+    const numbers = document.getElementById("numbers").value.split(",");
+    const tien = parseInt(document.getElementById("tien").value);
+
+    if (!tien || numbers.length == 0) {
+        alert("Nhập đủ thông tin!");
+        return;
+    }
+
+    const url = "https://api.xosoapi.com/v1/" + mien + "/latest";
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+
+        const giaiDB = data.data.giaidb;
+        const tatCaGiai = Object.values(data.data).flat().join(" ");
+
+        let html = `<p><b>Giải đặc biệt:</b> ${giaiDB}</p>`;
+        let tongLoi = 0;
+
+        numbers.forEach(num => {
+            num = num.trim();
+            if (num.length != 2) return;
+
+            let loCount = (tatCaGiai.match(new RegExp(num, "g")) || []).length;
+            let deTrung = giaiDB.endsWith(num);
+
+            let tienLo = loCount * tien * 75;
+            let tienDe = deTrung ? tien * 75 : 0;
+
+            tongLoi += tienLo + tienDe - (tien * 2);
+
+            html += `<hr>
+            <p>Số <b>${num}</b></p>
+            <p>Lô trúng: ${loCount} lần = ${tienLo}</p>
+            <p>Đề trúng: ${deTrung ? "Có" : "Không"} = ${tienDe}</p>`;
+        });
+
+        html += `<hr><p class="${tongLoi >= 0 ? 'win' : 'lose'}">
+        Tổng: ${tongLoi >= 0 ? '+' : ''}${tongLoi}
+        </p>`;
+
+        document.getElementById("output").innerHTML = html;
+
+    } catch (err) {
+        document.getElementById("output").innerHTML = 
+        "<p class='lose'>Không lấy được kết quả. Có thể API bị chặn.</p>";
+    }
+}
+</script>
+
+</body>
+</html>
