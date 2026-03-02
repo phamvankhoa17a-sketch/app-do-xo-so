@@ -3,54 +3,65 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>App Dò Xổ Số PRO</title>
+<title>App Dò Xổ Số PRO MAX</title>
 <style>
-body {
+body{
     font-family: Arial;
-    background: #f2f2f2;
-    display: flex;
-    justify-content: center;
-    padding: 20px;
+    margin:0;
+    background: linear-gradient(135deg,#ff416c,#ff4b2b);
+    display:flex;
+    justify-content:center;
+    padding:20px;
 }
-.container {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+.container{
+    background:white;
+    padding:20px;
+    border-radius:16px;
+    width:100%;
+    max-width:420px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
-h2 {
-    text-align: center;
-    color: #d62828;
+h2{text-align:center;color:#ff416c;margin-top:0;}
+input,select,button{
+    width:100%;
+    padding:10px;
+    margin-top:10px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    font-size:14px;
 }
-input, select, button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
+button{
+    background:#ff416c;
+    color:white;
+    font-weight:bold;
+    border:none;
+    cursor:pointer;
 }
-button {
-    background: #d62828;
-    color: white;
-    font-weight: bold;
-    border: none;
+button:hover{opacity:0.9}
+.result{
+    margin-top:15px;
+    background:#f5f5f5;
+    padding:10px;
+    border-radius:10px;
+    max-height:300px;
+    overflow:auto;
 }
-.result {
-    margin-top: 15px;
-    background: #f8f8f8;
-    padding: 10px;
-    border-radius: 8px;
+.win{color:green;font-weight:bold}
+.lose{color:red;font-weight:bold}
+.history{
+    margin-top:10px;
+    font-size:13px;
+    background:#fafafa;
+    padding:8px;
+    border-radius:8px;
 }
-.win { color: green; font-weight: bold; }
-.lose { color: red; font-weight: bold; }
+.small{font-size:12px;color:#555}
 </style>
 </head>
 <body>
 
 <div class="container">
-<h2>App Dò Xổ Số 🎯</h2>
+<h2>🎯 App Dò Xổ Số PRO MAX</h2>
 
 <select id="mien">
 <option value="mb">Miền Bắc</option>
@@ -58,66 +69,98 @@ button {
 <option value="mn">Miền Nam</option>
 </select>
 
-<input type="text" id="numbers" placeholder="Nhập số (vd: 27,72,45)">
-<input type="number" id="tien" placeholder="Nhập tiền mỗi số">
+<input type="text" id="numbers"
+placeholder="Nhập dạng: 27-1000,72-500">
 
 <button onclick="doSo()">Dò & Tính Tiền</button>
+<button onclick="xoaHistory()">🗑 Xoá Lịch Sử</button>
 
 <div class="result" id="output"></div>
+<div class="history" id="history"></div>
+
 </div>
 
 <script>
-async function doSo() {
-    const mien = document.getElementById("mien").value;
-    const numbers = document.getElementById("numbers").value.split(",");
-    const tien = parseInt(document.getElementById("tien").value);
+function formatMoney(x){
+    return x.toLocaleString("vi-VN")+" đ";
+}
 
-    if (!tien || numbers.length == 0) {
-        alert("Nhập đủ thông tin!");
+function saveHistory(text){
+    let h = localStorage.getItem("lichsu") || "";
+    h = text + "<br>" + h;
+    localStorage.setItem("lichsu",h);
+    document.getElementById("history").innerHTML = "<b>Lịch sử:</b><br>"+h;
+}
+
+function xoaHistory(){
+    localStorage.removeItem("lichsu");
+    document.getElementById("history").innerHTML="";
+}
+
+async function doSo(){
+    const mien = document.getElementById("mien").value;
+    const input = document.getElementById("numbers").value;
+
+    if(!input){
+        alert("Nhập số trước đã!");
         return;
     }
 
-    const url = "https://api.xosoapi.com/v1/" + mien + "/latest";
+    const url = "https://api.xosoapi.com/v1/"+mien+"/latest";
 
-    try {
+    try{
         const res = await fetch(url);
         const data = await res.json();
 
         const giaiDB = data.data.giaidb;
-        const tatCaGiai = Object.values(data.data).flat().join(" ");
+        const all = Object.values(data.data).flat().join(" ");
 
-        let html = `<p><b>Giải đặc biệt:</b> ${giaiDB}</p>`;
-        let tongLoi = 0;
+        let tong = 0;
+        let html = `<p class="small">📅 Hôm nay - Giải ĐB: <b>${giaiDB}</b></p>`;
 
-        numbers.forEach(num => {
-            num = num.trim();
-            if (num.length != 2) return;
+        const list = input.split(",");
 
-            let loCount = (tatCaGiai.match(new RegExp(num, "g")) || []).length;
+        list.forEach(item=>{
+            let parts = item.trim().split("-");
+            if(parts.length!=2) return;
+
+            let num = parts[0];
+            let tien = parseInt(parts[1]);
+
+            let loCount = (all.match(new RegExp(num,"g"))||[]).length;
             let deTrung = giaiDB.endsWith(num);
 
             let tienLo = loCount * tien * 75;
             let tienDe = deTrung ? tien * 75 : 0;
+            let tongSo = tienLo + tienDe - tien*2;
 
-            tongLoi += tienLo + tienDe - (tien * 2);
+            tong += tongSo;
 
             html += `<hr>
-            <p>Số <b>${num}</b></p>
-            <p>Lô trúng: ${loCount} lần = ${tienLo}</p>
-            <p>Đề trúng: ${deTrung ? "Có" : "Không"} = ${tienDe}</p>`;
+            <b>Số ${num}</b><br>
+            Lô: ${loCount} lần = ${formatMoney(tienLo)}<br>
+            Đề: ${deTrung?"Trúng 💰":"Không"} = ${formatMoney(tienDe)}<br>
+            Kết quả: <span class="${tongSo>=0?'win':'lose'}">
+            ${tongSo>=0?'+':''}${formatMoney(tongSo)}</span>`;
         });
 
-        html += `<hr><p class="${tongLoi >= 0 ? 'win' : 'lose'}">
-        Tổng: ${tongLoi >= 0 ? '+' : ''}${tongLoi}
-        </p>`;
+        html += `<hr><h3 class="${tong>=0?'win':'lose'}">
+        Tổng: ${tong>=0?'+':''}${formatMoney(tong)}
+        </h3>`;
 
         document.getElementById("output").innerHTML = html;
+        saveHistory("Tổng: "+formatMoney(tong));
 
-    } catch (err) {
-        document.getElementById("output").innerHTML = 
-        "<p class='lose'>Không lấy được kết quả. Có thể API bị chặn.</p>";
+    }catch(err){
+        document.getElementById("output").innerHTML =
+        "<p class='lose'>Không lấy được kết quả.</p>";
     }
 }
+
+document.getElementById("history").innerHTML =
+localStorage.getItem("lichsu")
+? "<b>Lịch sử:</b><br>"+localStorage.getItem("lichsu")
+: "";
 </script>
 
 </body>
